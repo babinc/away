@@ -29,6 +29,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         run_indefinitely();
     }
 
+    println!("Welcome back 🙂");
+
     Ok(())
 }
 
@@ -82,7 +84,6 @@ fn run_indefinitely() {
             break;
         }
     }
-    println!("Welcome back 🙂");
 }
 
 fn stay_awake() {
