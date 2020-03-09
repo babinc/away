@@ -1,54 +1,67 @@
-use clap::{App, AppSettings, SubCommand, Arg};
 use chrono::{NaiveTime, Utc, Timelike, Duration, Local};
 use std::error::Error;
 use device_query::{DeviceState, Keycode, DeviceQuery};
-use std::{thread, io};
+use std::{thread, io, env};
 use inputbot::KeybdKey::{ScrollLockKey};
 use std::io::Write;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    const DURATION: &str = "Duration";
-    const TIME: &str = "Time";
-    const INDEFINITELY: &str = "-i";
+    let args: Vec<String> = env::args().collect();
 
-    let matches = App::new("away")
-        .version("0.1.0")
-        .about("Away management  tool")
-        .setting(AppSettings::ColorAlways)
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .arg(Arg::with_name(DURATION)
-            .short("d")
-            .long("duration")
-            .help("example: 1:15:30 'hours:minutes:seconds'")
-            .takes_value(true))
-        .arg(Arg::with_name(TIME)
-            .short("t")
-            .long("time")
-            .help("example: 5:30pm")
-            .takes_value(true))
-        .subcommand(SubCommand::with_name(INDEFINITELY)
-            .about("Runs indefinitely"))
-    .get_matches();
-
-    if let Some(arg) = matches.value_of(DURATION) {
-        run_duration(arg)?
-    }
-
-    if let Some(arg) = matches.value_of(TIME) {
-        run_till_time(arg)?
-    }
-
-    if let Some(_) = matches.subcommand_matches(INDEFINITELY) {
-        run_indefinitely();
-    }
-
-    println!("Welcome back 🙂");
+    parse_arguments(&args)?;
 
     Ok(())
 }
 
-fn run_duration(arg: &str) -> Result<(), Box<dyn Error>> {
-    let parsed_time: NaiveTime = match NaiveTime::parse_from_str(arg, "%H:%M:%S") {
+fn parse_arguments(args: &Vec<String>) -> Result<(), Box<dyn Error>> {
+    const TIME_ARGUMENT: &str = "-t";
+    const DURATION: &str = "-d";
+    const INDEFINITELY: &str = "-i";
+    const HELP: &str = "-h";
+    const VERSION: &str = "-v";
+
+    if args.contains(&TIME_ARGUMENT.to_string()) == true {
+        let index = args.iter().position(|r| r == &TIME_ARGUMENT.to_string()).unwrap();
+        if args.len() > index + 1 {
+            run_till_time(&args)?
+        }
+        else {
+            eprintln!("Error: missing time parameter");
+            println!();
+            display_usage();
+        }
+    }
+    else if args.contains(&DURATION.to_string()) == true {
+        let index = args.iter().position(|r| r == &DURATION.to_string()).unwrap();
+        if args.len() > index + 1 {
+            run_duration(&args)?
+        }
+        else {
+            eprintln!("Error: missing duration parameter");
+            println!();
+            display_usage();
+        }
+    }
+    else if args.contains(&INDEFINITELY.to_string()) == true {
+        run_indefinitely();
+    }
+    else if args.contains(&HELP.to_string()) == true {
+        display_usage();
+    }
+    else if args.contains(&VERSION.to_string()) == true {
+        display_version();
+    }
+    else {
+        eprintln!("Error: Argument not valid");
+        println!();
+        display_usage();
+    }
+
+    Ok(())
+}
+
+fn run_duration(arg: &Vec<String>) -> Result<(), Box<dyn Error>> {
+    let parsed_time: NaiveTime = match NaiveTime::parse_from_str(arg[2].as_str(), "%H:%M:%S") {
         Ok(res) => res,
         Err(err) => {
             eprintln!("Could not parse duration input. Example: 1:15:30");
@@ -87,8 +100,8 @@ fn run_duration(arg: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn run_till_time(arg: &str) -> Result<(), Box<dyn Error>> {
-    let parsed_time: NaiveTime = match NaiveTime::parse_from_str(arg.to_lowercase().as_str(), "%I:%M:%p") {
+fn run_till_time(arg: &Vec<String>) -> Result<(), Box<dyn Error>> {
+    let parsed_time: NaiveTime = match NaiveTime::parse_from_str(arg[2].to_lowercase().as_str(), "%I:%M:%p") {
         Ok(res) => res,
         Err(err) => {
             eprintln!("Could not parse time input. Example: 10:00:am");
@@ -147,4 +160,34 @@ fn check_for_exit_key() -> bool {
     }
 
     return false;
+}
+
+fn display_usage() {
+    let version = env!("CARGO_PKG_VERSION");
+
+    println!("away {}", version);
+    println!("Away management tool");
+    println!();
+    println!("USAGE:");
+    println!("    away [OPTION] <ARGUMENT>");
+    println!();
+    println!("FLAGS:");
+    println!("    -h\t\t\tPrints help information");
+    println!("    -v\t\t\tPrints version information");
+    println!();
+    println!("OPTIONS:");
+    println!("    -d <Duration>\texample: 1:15:30 'hours:minutes:seconds'");
+    println!("    -t <Time>\t\texample: 5:30:pm");
+    println!("    -i\t\t\tRuns indefinitely");
+    println!();
+    println!("EXAMPLES:");
+    println!("    away -d 1:30:00");
+    println!("    away -t 5:30:pm");
+    println!("    away -i");
+    println!();
+}
+
+fn display_version() {
+    let version = env!("CARGO_PKG_VERSION");
+    println!("v: {}", version);
 }
