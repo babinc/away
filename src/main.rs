@@ -1,5 +1,5 @@
 use clap::{App, AppSettings, SubCommand, Arg};
-use chrono::{NaiveTime, Utc, Timelike, Duration};
+use chrono::{NaiveTime, Utc, Timelike, Duration, Local};
 use std::error::Error;
 use device_query::{DeviceState, Keycode, DeviceQuery};
 use std::{thread, io};
@@ -17,12 +17,21 @@ fn main() -> Result<(), Box<dyn Error>> {
             .long("duration")
             .help("example: 1:15:30 'hours:minutes:seconds'")
             .takes_value(true))
+        .arg(Arg::with_name("Time")
+            .short("t")
+            .long("time")
+            .help("example: 5:30pm")
+            .takes_value(true))
         .subcommand(SubCommand::with_name("i")
             .about("Runs indefinitely"))
         .get_matches();
 
     if let Some(arg) = matches.value_of("Duration") {
         run_duration(arg)?
+    }
+
+    if let Some(arg) = matches.value_of("Time") {
+        run_till_time(arg)?
     }
 
     if let Some(_) = matches.subcommand_matches("i") {
@@ -67,6 +76,37 @@ fn run_duration(arg: &str) -> Result<(), Box<dyn Error>> {
         io::stdout().flush().unwrap();
 
         if exited || now >= stop_time {
+            break;
+        }
+    }
+
+    Ok(())
+}
+
+fn run_till_time(arg: &str) -> Result<(), Box<dyn Error>> {
+    let parsed_time: NaiveTime = match NaiveTime::parse_from_str(arg.to_lowercase().as_str(), "%I:%M:%p") {
+        Ok(res) => res,
+        Err(err) => {
+            eprintln!("Could not parse time input. Example: 10:00:am");
+            return Err(Box::new(err));
+        }
+    };
+
+    loop {
+        let exited = check_for_exit_key();
+
+        let local_time = Local::now().time();
+        let elapsed_time = parsed_time - local_time;
+
+        print!("{}:{}:{}", elapsed_time.num_seconds() / 3600, (elapsed_time.num_seconds() / 60) % 60, elapsed_time.num_seconds() % 60);
+        io::stdout().flush().unwrap();
+
+        stay_awake();
+
+        print!("\r");
+        io::stdout().flush().unwrap();
+
+        if exited || local_time >= parsed_time.to_owned() {
             break;
         }
     }
