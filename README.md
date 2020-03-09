@@ -10,17 +10,17 @@ Download Windows away installer v0.1.2 from [here](https://s3-us-west-2.amazonaw
 # How to use examples
 Run till time:
 ```sh
-away.exe -t 5:30:pm
+away -t 5:30:pm
 ```
 
 Run for duration of 1 hour and 30 minutes:
 ```sh
-away.exe -d 1:30:0
+away -d 1:30:0
 ```
 
 Run indefinitely
 ```sh
-away.exe -i
+away -i
 ```
 
 Press "q" at any time to quit the program, the windows does not need to active.
