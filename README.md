@@ -15,10 +15,12 @@ away.exe -t 5:30:pm
 
 Run for duration of 1 hour and 30 minutes:
 ```sh
-away.exe -d 1:30:00
+away.exe -d 1:30:0
 ```
 
 Run indefinitely
 ```sh
 away.exe -i
 ```
+
+Press "q" at any time to quit the program, the windows does not need to active.
