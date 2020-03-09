@@ -3,7 +3,7 @@ use chrono::{NaiveTime, Utc, Timelike, Duration, Local};
 use std::error::Error;
 use device_query::{DeviceState, Keycode, DeviceQuery};
 use std::{thread, io};
-use inputbot::KeybdKey::{NumLockKey};
+use inputbot::KeybdKey::{ScrollLockKey};
 use std::io::Write;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -127,9 +127,9 @@ fn run_indefinitely() {
 }
 
 fn stay_awake() {
-    NumLockKey.press();
+    ScrollLockKey.press();
     thread::sleep(std::time::Duration::from_millis(150));
-    NumLockKey.release();
+    ScrollLockKey.release();
 }
 
 fn check_for_exit_key() -> bool {
