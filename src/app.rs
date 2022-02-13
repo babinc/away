@@ -1,6 +1,5 @@
-use std::{io, thread};
+use std::thread;
 use std::error::Error;
-use std::io::Write;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 use chrono::{Duration, Local, NaiveTime, Timelike, Utc};
@@ -8,28 +7,19 @@ use device_query::{DeviceQuery, DeviceState, Keycode};
 use hhmmss::Hhmmss;
 use inputbot::KeybdKey::ScrollLockKey;
 use crate::spinner::Spinner;
+use crate::ui::Ui;
 
 pub struct App {
+    ui: Ui,
     spinner: Spinner
 }
 
 impl App {
     pub fn new() -> Self {
         App {
+            ui: Ui::new(),
             spinner: Spinner::new()
         }
-        // loop {
-        //     print!("\r");
-        //     io::stdout().flush().unwrap();
-        //
-        //
-        //     print!("Waiting: {} ", output);
-        //     io::stdout().flush().unwrap();
-        //
-        //     thread::sleep(std::time::Duration::from_millis(100));
-        // }
-        //
-        // app
     }
 
     pub fn run_till_time(&mut self, arg: &Vec<String>) -> Result<(), Box<dyn Error>> {
@@ -51,7 +41,7 @@ impl App {
 
             if has_user_activity && is_waiting_for_timeout == false {
                 is_waiting_for_timeout = true;
-                Self::user_activity_wait(&tx);
+                self.user_activity_wait(&tx);
             }
 
             if rx.try_recv().is_ok() {
@@ -63,7 +53,7 @@ impl App {
 
             if !is_waiting_for_timeout {
                 let time_output = elapsed_time.hhmmss();
-                Self::write_output(time_output.as_str());
+                self.ui.write(time_output.as_str());
                 Self::stay_awake();
             }
 
@@ -103,7 +93,7 @@ impl App {
 
             if has_user_activity && is_waiting_for_timeout == false {
                 is_waiting_for_timeout = true;
-                Self::user_activity_wait(&tx);
+                self.user_activity_wait(&tx);
             }
 
             if rx.try_recv().is_ok() {
@@ -116,7 +106,7 @@ impl App {
 
                 let time_output = elapsed_time.hhmmss();
 
-                Self::write_output(time_output.as_str());
+                self.ui.write(time_output.as_str());
                 Self::stay_awake();
             }
 
@@ -132,8 +122,6 @@ impl App {
         let (tx, rx) = mpsc::channel();
         let mut is_waiting_for_timeout = false;
 
-        let mut write_stay_awake = true;
-
         loop {
             let exited = Self::check_for_exit_key();
 
@@ -141,24 +129,16 @@ impl App {
 
             if has_user_activity && is_waiting_for_timeout == false {
                 is_waiting_for_timeout = true;
-                Self::user_activity_wait(&tx);
+                self.user_activity_wait(&tx);
             }
 
             if rx.try_recv().is_ok() {
                 is_waiting_for_timeout = false;
-                write_stay_awake = true;
             }
 
             if !is_waiting_for_timeout {
-                if write_stay_awake {
-                    //clear line
-                    Self::write_output("");
-                    write_stay_awake = false;
-                }
-                print!("\r");
-                io::stdout().flush().unwrap();
-                print!("Staying Awake: {} ", self.spinner.next_char());
-                io::stdout().flush().unwrap();
+                let output = format!("Staying Awake: {} ", self.spinner.next_char());
+                self.ui.write(output.as_str());
                 Self::stay_awake();
             }
 
@@ -187,24 +167,13 @@ impl App {
         return false;
     }
 
-    fn user_activity_wait(tx: &Sender<()>) {
-        Self::write_output("User Activity Detected");
+    fn user_activity_wait(&mut self, tx: &Sender<()>) {
+        self.ui.write("User Activity Detected");
         let thread_tx = tx.clone();
         thread::spawn(move || {
-            thread::sleep(std::time::Duration::from_secs(60));
+            thread::sleep(std::time::Duration::from_secs(5));
             thread_tx.send(()).unwrap();
         });
-    }
-
-    fn write_output(output: &str) {
-        print!("\r");
-        io::stdout().flush().unwrap();
-        print!("                                             ");
-        io::stdout().flush().unwrap();
-        print!("\r");
-        io::stdout().flush().unwrap();
-        print!("{}", output);
-        io::stdout().flush().unwrap();
     }
 
     fn check_for_user_activity() -> bool {

@@ -1,5 +1,6 @@
 mod app;
 mod spinner;
+mod ui;
 
 use std::error::Error;
 use std::{env};
