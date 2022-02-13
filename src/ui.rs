@@ -13,7 +13,7 @@ impl Ui {
     }
 
     pub fn write(&mut self, output: &str) {
-        if output.len() > self.line_len {
+        if output.len() < self.line_len {
             self.clear();
         }
         print!("\r");
