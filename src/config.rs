@@ -1,8 +1,9 @@
-use std::{env, fs};
+use std::fs;
 use std::error::Error;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
 use std::path::Path;
+use directories::ProjectDirs;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -22,25 +23,26 @@ impl std::default::Default for Config {
 
 impl Config {
     pub fn load_config() -> Result<Config, Box<dyn Error>> {
-        let file_path = "config.json";
+        let file_name = "config.json";
 
+        let proj_dirs = ProjectDirs::from("com", "CJB_Software",  "away")
+            .ok_or(std::io::Error::new(ErrorKind::Other, "Error getting project directory"))?;
+
+        let data_local = proj_dirs.data_local_dir().to_str()
+            .ok_or(std::io::Error::new(ErrorKind::Other, "Error getting project directory as string"))?;
+
+        if Path::new(data_local).is_dir() == false {
+            fs::create_dir_all(data_local)?;
+            println!("Directory created: {}", data_local)
+        }
+
+        let full_path = format!("{}\\{}", data_local, file_name);
         let mut config = Config::default();
 
-        let path = Path::new(file_path);
-
-        let exe_path = match env::current_exe() {
-            Ok(exe_path) => format!("{}", exe_path.display()),
-            Err(e) => {
-                let error_msg = format!("Error getting executable path: {}", e.to_string());
-                let err = std::io::Error::new(ErrorKind::Other, error_msg);
-                return Err(Box::new(err));
-            },
-        };
-
-        let full_path = format!("{}\\{}", exe_path, path.to_str().unwrap());
+        let path = Path::new(full_path.as_str());
 
         if path.exists() && path.is_file() {
-            let file_str = fs::read_to_string(file_path)?;
+            let file_str = fs::read_to_string(&full_path)?;
 
             if file_str.len() > 0 {
                 match serde_json::from_str(file_str.as_ref()) {
@@ -48,7 +50,7 @@ impl Config {
                     Err(err) => {
                         let error_msg = format!("Path: {}, Error parsing config.json: {}. Applying default values", path.to_str().unwrap(), err);
                         eprintln!("{}", error_msg);
-                        fs::remove_file(file_path)?;
+                        fs::remove_file(&full_path)?;
                         return Ok(Config::default());
                     }
                 };
@@ -57,7 +59,7 @@ impl Config {
             println!("Using config file: {}", full_path);
         }
         else {
-            let mut file = match File::create(&file_path) {
+            let mut file = match File::create(&full_path) {
                 Ok(res) => res,
                 Err(err) => {
                     let error_msg = format!("Error: Trying parse new config.json: {}", err.to_string());
