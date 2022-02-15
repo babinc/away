@@ -38,7 +38,6 @@ impl Config {
 
         let full_path = format!("{}\\{}", data_local, file_name);
         let mut config = Config::default();
-        let config_json = serde_json::to_string_pretty(&config)?;
 
         let path = Path::new(full_path.as_str());
 
@@ -69,6 +68,8 @@ impl Config {
                 }
             };
 
+            let config_json = serde_json::to_string_pretty(&config)?;
+
             if config_json.len() > 0 {
                 match file.write_all(config_json.as_ref()) {
                     Ok(_res) => {},
@@ -83,7 +84,8 @@ impl Config {
             println!("New config file created: {}", full_path);
         }
 
-        println!("config values: {}", config_json);
+        let output = serde_json::to_string_pretty(&config)?;
+        println!("config values: {}", output);
 
         Ok(config)
     }
