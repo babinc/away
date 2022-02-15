@@ -7,34 +7,38 @@ use inputbot::KeybdKey::{ScrollLockKey};
 use std::io::Write;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    const DURATION: &str = "Duration";
+    const TIME: &str = "Time";
+    const INDEFINITELY: &str = "-i";
+
     let matches = App::new("away")
         .version("0.1.0")
         .about("Away management  tool")
         .setting(AppSettings::ColorAlways)
         .setting(AppSettings::ArgRequiredElseHelp)
-        .arg(Arg::with_name("Duration")
+        .arg(Arg::with_name(DURATION)
             .short("d")
             .long("duration")
             .help("example: 1:15:30 'hours:minutes:seconds'")
             .takes_value(true))
-        .arg(Arg::with_name("Time")
+        .arg(Arg::with_name(TIME)
             .short("t")
             .long("time")
             .help("example: 5:30pm")
             .takes_value(true))
-        .subcommand(SubCommand::with_name("i")
+        .subcommand(SubCommand::with_name(INDEFINITELY)
             .about("Runs indefinitely"))
-        .get_matches();
+    .get_matches();
 
-    if let Some(arg) = matches.value_of("Duration") {
+    if let Some(arg) = matches.value_of(DURATION) {
         run_duration(arg)?
     }
 
-    if let Some(arg) = matches.value_of("Time") {
+    if let Some(arg) = matches.value_of(TIME) {
         run_till_time(arg)?
     }
 
-    if let Some(_) = matches.subcommand_matches("i") {
+    if let Some(_) = matches.subcommand_matches(INDEFINITELY) {
         run_indefinitely();
     }
 
