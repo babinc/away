@@ -24,3 +24,8 @@ away -i
 ```
 
 Press "q" at any time to quit the program. The window does not need to be active.
+
+### TODO:
+ - User input detection on its own loop/thread
+ - Add mouse movement detection
+ - Add "key to press" to config file
