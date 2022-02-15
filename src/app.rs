@@ -7,12 +7,29 @@ use chrono::{Duration, Local, NaiveTime, Timelike, Utc};
 use device_query::{DeviceQuery, DeviceState, Keycode};
 use hhmmss::Hhmmss;
 use inputbot::KeybdKey::ScrollLockKey;
+use crate::spinner::Spinner;
 
-pub struct App {}
+pub struct App {
+    spinner: Spinner
+}
 
 impl App {
     pub fn new() -> Self {
-        App {}
+        App {
+            spinner: Spinner::new()
+        }
+        // loop {
+        //     print!("\r");
+        //     io::stdout().flush().unwrap();
+        //
+        //
+        //     print!("Waiting: {} ", output);
+        //     io::stdout().flush().unwrap();
+        //
+        //     thread::sleep(std::time::Duration::from_millis(100));
+        // }
+        //
+        // app
     }
 
     pub fn run_till_time(&mut self, arg: &Vec<String>) -> Result<(), Box<dyn Error>> {
@@ -134,9 +151,14 @@ impl App {
 
             if !is_waiting_for_timeout {
                 if write_stay_awake {
-                    Self::write_output("Staying Awake");
+                    //clear line
+                    Self::write_output("");
                     write_stay_awake = false;
                 }
+                print!("\r");
+                io::stdout().flush().unwrap();
+                print!("Staying Awake: {} ", self.spinner.next_char());
+                io::stdout().flush().unwrap();
                 Self::stay_awake();
             }
 
@@ -188,4 +210,8 @@ impl App {
     fn check_for_user_activity() -> bool {
         return DeviceState.get_keys().len() > 0
     }
+}
+
+#[test]
+fn it_works() {
 }
