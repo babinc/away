@@ -6,17 +6,20 @@ use chrono::{Duration, Local, NaiveTime, Timelike, Utc};
 use device_query::{DeviceQuery, DeviceState, Keycode};
 use hhmmss::Hhmmss;
 use inputbot::KeybdKey::ScrollLockKey;
+use crate::Config;
 use crate::spinner::Spinner;
 use crate::ui::Ui;
 
 pub struct App {
+    config: Config,
     ui: Ui,
     spinner: Spinner
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(config: Config) -> Self {
         App {
+            config,
             ui: Ui::new(),
             spinner: Spinner::new()
         }
@@ -54,7 +57,7 @@ impl App {
             if !is_waiting_for_timeout {
                 let time_output = elapsed_time.hhmmss();
                 self.ui.write(time_output.as_str());
-                Self::stay_awake();
+                self.stay_awake();
             }
 
             if exited || local_time >= parsed_time.to_owned() {
@@ -107,7 +110,7 @@ impl App {
                 let time_output = elapsed_time.hhmmss();
 
                 self.ui.write(time_output.as_str());
-                Self::stay_awake();
+                self.stay_awake();
             }
 
             if exited || now >= stop_time {
@@ -139,7 +142,7 @@ impl App {
             if !is_waiting_for_timeout {
                 let output = format!("Staying Awake: {} ", self.spinner.next_char());
                 self.ui.write(output.as_str());
-                Self::stay_awake();
+                self.stay_awake();
             }
 
             if exited {
@@ -148,9 +151,9 @@ impl App {
         }
     }
 
-    fn stay_awake() {
+    fn stay_awake(&self) {
         ScrollLockKey.press();
-        thread::sleep(std::time::Duration::from_millis(100));
+        thread::sleep(std::time::Duration::from_millis(self.config.key_press_time_ms));
         ScrollLockKey.release();
     }
 
@@ -170,8 +173,9 @@ impl App {
     fn user_activity_wait(&mut self, tx: &Sender<()>) {
         self.ui.write("User Activity Detected");
         let thread_tx = tx.clone();
+        let user_wait_time = self.config.user_input_wait_time_ms;
         thread::spawn(move || {
-            thread::sleep(std::time::Duration::from_secs(5));
+            thread::sleep(std::time::Duration::from_millis(user_wait_time));
             thread_tx.send(()).unwrap();
         });
     }
@@ -179,8 +183,4 @@ impl App {
     fn check_for_user_activity() -> bool {
         return DeviceState.get_keys().len() > 0
     }
-}
-
-#[test]
-fn it_works() {
 }
