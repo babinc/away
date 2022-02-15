@@ -23,4 +23,4 @@ Run indefinitely
 away -i
 ```
 
-Press "q" at any time to quit the program. The window does not need to be actived.
+Press "q" at any time to quit the program. The window does not need to be active.
