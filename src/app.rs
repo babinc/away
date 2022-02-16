@@ -193,7 +193,7 @@ impl App {
         let user_wait_time = self.config.user_input_wait_time_ms;
         thread::spawn(move || {
             thread::sleep(std::time::Duration::from_millis(user_wait_time));
-            thread_tx.send(()).unwrap();
+            thread_tx.send(()).expect("Error sending cross thread user activity wait is done")
         });
     }
 
@@ -204,7 +204,7 @@ impl App {
             loop {
                 let has_keyboard_input = DeviceState.get_keys().len() > 0;
                 if has_keyboard_input {
-                    thread_tx.send(()).unwrap();
+                    thread_tx.send(()).expect("Error sending cross thread User Input Detection");
                     thread::sleep(std::time::Duration::from_millis(user_wait_time));
                 }
                 thread::sleep(std::time::Duration::from_millis(100));
