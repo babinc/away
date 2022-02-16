@@ -1,7 +1,6 @@
-use std::thread;
+use std::{process, thread};
 use std::error::Error;
-use std::sync::mpsc;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{self, Sender};
 use chrono::{Duration, Local, NaiveTime, Timelike, Utc};
 use device_query::{DeviceQuery, DeviceState, Keycode};
 use hhmmss::Hhmmss;
@@ -34,20 +33,27 @@ impl App {
             }
         };
 
-        let (tx, rx) = mpsc::channel();
+        let (user_activity_timeout_tx, user_activity_timeout_rx) = mpsc::channel();
+        let (user_activity_check_tx, user_activity_check_rx) = mpsc::channel();
         let mut is_waiting_for_timeout = false;
+        let mut has_user_activity = false;
+
+        self.check_for_user_activity(&user_activity_check_tx);
+
+        Self::check_for_exit_key();
 
         loop {
-            let exited = Self::check_for_exit_key();
-
-            let has_user_activity = Self::check_for_user_activity();
+            if user_activity_check_rx.try_recv().is_ok() {
+                has_user_activity = true;
+            }
 
             if has_user_activity && is_waiting_for_timeout == false {
                 is_waiting_for_timeout = true;
-                self.user_activity_wait(&tx);
+                has_user_activity = false;
+                self.user_activity_wait(&user_activity_timeout_tx);
             }
 
-            if rx.try_recv().is_ok() {
+            if user_activity_timeout_rx.try_recv().is_ok() {
                 is_waiting_for_timeout = false;
             }
 
@@ -60,7 +66,7 @@ impl App {
                 self.stay_awake();
             }
 
-            if exited || local_time >= parsed_time.to_owned() {
+            if local_time >= parsed_time.to_owned() {
                 break;
             }
         }
@@ -86,20 +92,27 @@ impl App {
         let mut now = Utc::now();
         let stop_time = now + duration;
 
-        let (tx, rx) = mpsc::channel();
+        let (user_activity_timeout_tx, user_activity_timeout_rx) = mpsc::channel();
+        let (user_activity_check_tx, user_activity_check_rx) = mpsc::channel();
         let mut is_waiting_for_timeout = false;
+        let mut has_user_activity = false;
+
+        self.check_for_user_activity(&user_activity_check_tx);
+
+        Self::check_for_exit_key();
 
         loop {
-            let exited = Self::check_for_exit_key();
-
-            let has_user_activity = Self::check_for_user_activity();
+            if user_activity_check_rx.try_recv().is_ok() {
+                has_user_activity = true;
+            }
 
             if has_user_activity && is_waiting_for_timeout == false {
                 is_waiting_for_timeout = true;
-                self.user_activity_wait(&tx);
+                has_user_activity = false;
+                self.user_activity_wait(&user_activity_timeout_tx);
             }
 
-            if rx.try_recv().is_ok() {
+            if user_activity_timeout_rx.try_recv().is_ok() {
                 is_waiting_for_timeout = false;
             }
 
@@ -113,7 +126,7 @@ impl App {
                 self.stay_awake();
             }
 
-            if exited || now >= stop_time {
+            if now >= stop_time {
                 break;
             }
         }
@@ -122,20 +135,27 @@ impl App {
     }
 
     pub fn run_indefinitely(&mut self) {
-        let (tx, rx) = mpsc::channel();
+        let (user_activity_timeout_tx, user_activity_timeout_rx) = mpsc::channel();
+        let (user_activity_check_tx, user_activity_check_rx) = mpsc::channel();
         let mut is_waiting_for_timeout = false;
+        let mut has_user_activity = false;
+
+        self.check_for_user_activity(&user_activity_check_tx);
+
+        Self::check_for_exit_key();
 
         loop {
-            let exited = Self::check_for_exit_key();
-
-            let has_user_activity = Self::check_for_user_activity();
+            if user_activity_check_rx.try_recv().is_ok() {
+                has_user_activity = true;
+            }
 
             if has_user_activity && is_waiting_for_timeout == false {
                 is_waiting_for_timeout = true;
-                self.user_activity_wait(&tx);
+                has_user_activity = false;
+                self.user_activity_wait(&user_activity_timeout_tx);
             }
 
-            if rx.try_recv().is_ok() {
+            if user_activity_timeout_rx.try_recv().is_ok() {
                 is_waiting_for_timeout = false;
             }
 
@@ -143,10 +163,6 @@ impl App {
                 let output = format!("Staying Awake: {} ", self.spinner.next_char());
                 self.ui.write(output.as_str());
                 self.stay_awake();
-            }
-
-            if exited {
-                break;
             }
         }
     }
@@ -157,17 +173,18 @@ impl App {
         ScrollLockKey.release();
     }
 
-    fn check_for_exit_key() -> bool {
-        let keys: Vec<Keycode> = DeviceState.get_keys();
-        for key in keys.iter() {
-            return if *key == Keycode::Q {
-                true
-            } else {
-                false
+    fn check_for_exit_key() {
+        thread::spawn(|| {
+            loop {
+                let keys: Vec<Keycode> = DeviceState.get_keys();
+                for key in keys.iter() {
+                    if *key == Keycode::Q {
+                        process::exit(0);
+                    }
+                }
+                thread::sleep(std::time::Duration::from_millis(100));
             }
-        }
-
-        return false;
+        });
     }
 
     fn user_activity_wait(&mut self, tx: &Sender<()>) {
@@ -180,7 +197,18 @@ impl App {
         });
     }
 
-    fn check_for_user_activity() -> bool {
-        return DeviceState.get_keys().len() > 0
+    fn check_for_user_activity(&self, tx: &Sender<()>) {
+        let thread_tx = tx.clone();
+        let user_wait_time = self.config.user_input_wait_time_ms;
+        thread::spawn(move || {
+            loop {
+                let has_keyboard_input = DeviceState.get_keys().len() > 0;
+                if has_keyboard_input {
+                    thread_tx.send(()).unwrap();
+                    thread::sleep(std::time::Duration::from_millis(user_wait_time));
+                }
+                thread::sleep(std::time::Duration::from_millis(100));
+            }
+        });
     }
 }

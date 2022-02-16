@@ -4,13 +4,17 @@ mod ui;
 mod config;
 
 use std::error::Error;
-use std::env;
+use std::{env, process};
 use crate::app::App;
 use crate::config::Config;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let config = Config::load_config()?;
     let args: Vec<String> = env::args().collect();
+
+    ctrlc::set_handler(move || {
+        process::exit(0);
+    }).expect("Error setting Ctrl-C handler");
 
     parse_arguments(&args, config)?;
 
