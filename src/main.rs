@@ -76,6 +76,7 @@ fn display_usage() {
 
     println!("away {}", version);
     println!("Away management tool");
+    println!("Author: Carman Babin");
     println!();
     println!("USAGE:");
     println!("    away [OPTION] <ARGUMENT>");
