@@ -28,5 +28,4 @@ Press "q" at any time to quit the program. The window does not need to be active
 ![](https://s3.us-west-2.amazonaws.com/blog.carmanbabin.net/tools/away.gif)
 
 ### TODO:
- - Add mouse movement detection
  - Add "key to press" to config file
