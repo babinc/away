@@ -1,18 +1,20 @@
 use std::{process, thread};
-use std::error::Error;
 use std::sync::mpsc::{self, Sender};
 use chrono::{Duration, Local, NaiveTime, Timelike, Utc};
 use device_query::{DeviceQuery, DeviceState, Keycode};
 use hhmmss::Hhmmss;
 use inputbot::KeybdKey::ScrollLockKey;
+use mouse_rs::Mouse;
+use mouse_rs::types::Point;
 use crate::Config;
 use crate::spinner::Spinner;
 use crate::ui::Ui;
+use anyhow::{Result, anyhow};
 
 pub struct App {
     config: Config,
     ui: Ui,
-    spinner: Spinner
+    spinner: Spinner,
 }
 
 impl App {
@@ -20,17 +22,14 @@ impl App {
         App {
             config,
             ui: Ui::new(),
-            spinner: Spinner::new()
+            spinner: Spinner::new(),
         }
     }
 
-    pub fn run_till_time(&mut self, arg: &Vec<String>) -> Result<(), Box<dyn Error>> {
+    pub fn run_till_time(&mut self, arg: &Vec<String>) -> Result<()> {
         let parsed_time: NaiveTime = match NaiveTime::parse_from_str(arg[2].to_lowercase().as_str(), "%I:%M:%p") {
             Ok(res) => res,
-            Err(err) => {
-                eprintln!("Could not parse time input. Example: 10:00:am");
-                return Err(Box::new(err));
-            }
+            Err(err) => return Err(anyhow!("Could not parse time input. Error: {},  Example: 10:00:am", err.to_string()))
         };
 
         let (user_activity_timeout_tx, user_activity_timeout_rx) = mpsc::channel();
@@ -74,13 +73,10 @@ impl App {
         Ok(())
     }
 
-    pub fn run_duration(&mut self, arg: &Vec<String>) -> Result<(), Box<dyn Error>> {
+    pub fn run_duration(&mut self, arg: &Vec<String>) -> Result<()> {
         let parsed_time: NaiveTime = match NaiveTime::parse_from_str(arg[2].as_str(), "%H:%M:%S") {
             Ok(res) => res,
-            Err(err) => {
-                eprintln!("Could not parse duration input. Example: 1:15:30");
-                return Err(Box::new(err));
-            }
+            Err(err) => return Err(anyhow!("Could not parse duration input. Error: {}, Example: 1:15:30", err.to_string()))
         };
 
         let hour_dur = Duration::hours(parsed_time.hour() as i64);
@@ -200,15 +196,29 @@ impl App {
     fn check_for_user_activity(&self, tx: &Sender<()>) {
         let thread_tx = tx.clone();
         let user_wait_time = self.config.user_input_wait_time_ms;
+        let mouse = Mouse::new();
+        let mut last_mouse_pos = mouse.get_position().unwrap_or(Point { x: 0, y: 0 });
         thread::spawn(move || {
             loop {
                 let has_keyboard_input = DeviceState.get_keys().len() > 0;
-                if has_keyboard_input {
+                let current_mouse_pos = mouse.get_position().unwrap_or(Point { x: 0, y: 0 });
+                let has_mouse_input = Self::are_points_equal(&current_mouse_pos, &last_mouse_pos) == false;
+                if has_keyboard_input || has_mouse_input {
                     thread_tx.send(()).expect("Error sending cross thread User Input Detection");
                     thread::sleep(std::time::Duration::from_millis(user_wait_time));
                 }
+                last_mouse_pos = current_mouse_pos;
                 thread::sleep(std::time::Duration::from_millis(100));
             }
         });
+    }
+
+    fn are_points_equal(left: &Point, right: &Point) -> bool {
+        if left.x == right.x && left.y == right.y {
+            true
+        }
+        else {
+            false
+        }
     }
 }

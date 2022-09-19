@@ -1,10 +1,10 @@
 use std::fs;
-use std::error::Error;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
 use std::path::Path;
 use directories::ProjectDirs;
 use serde_derive::{Deserialize, Serialize};
+use anyhow::{anyhow, Result};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
@@ -12,7 +12,7 @@ pub struct Config {
     pub key_press_time_ms: u64,
 }
 
-impl std::default::Default for Config {
+impl Default for Config {
     fn default() -> Self {
         Self {
             user_input_wait_time_ms: 60_000,
@@ -22,7 +22,7 @@ impl std::default::Default for Config {
 }
 
 impl Config {
-    pub fn load_config() -> Result<Config, Box<dyn Error>> {
+    pub fn load_config() -> Result<Config> {
         let file_name = "config.json";
 
         let proj_dirs = ProjectDirs::from("com", "CJB_Software",  "away")
@@ -61,11 +61,7 @@ impl Config {
         else {
             let mut file = match File::create(&full_path) {
                 Ok(res) => res,
-                Err(err) => {
-                    let error_msg = format!("Error: Trying parse new config.json: {}", err.to_string());
-                    let err = std::io::Error::new(ErrorKind::Other, error_msg);
-                    return Err(Box::new(err));
-                }
+                Err(err) => return Err(anyhow!("Error: Trying parse new config.json: {}", err.to_string()))
             };
 
             let config_json = serde_json::to_string_pretty(&config)?;
@@ -73,11 +69,7 @@ impl Config {
             if config_json.len() > 0 {
                 match file.write_all(config_json.as_ref()) {
                     Ok(_res) => {},
-                    Err(err) => {
-                        let error_msg = format!("Error trying to write new config.json: {}", err.to_string());
-                        let err = std::io::Error::new(ErrorKind::Other, error_msg);
-                        return Err(Box::new(err));
-                    }
+                    Err(err) => return Err(anyhow!("Error trying to write new config.json: {}", err.to_string()))
                 }
             }
 

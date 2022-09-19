@@ -3,12 +3,16 @@ mod spinner;
 mod ui;
 mod config;
 
-use std::error::Error;
 use std::{env, process};
 use crate::app::App;
 use crate::config::Config;
+use anyhow::Result;
 
-fn main() -> Result<(), Box<dyn Error>> {
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+fn main() -> Result<()> {
+    println!("Away v{}", VERSION);
+
     let config = Config::load_config()?;
     let args: Vec<String> = env::args().collect();
 
@@ -21,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn parse_arguments(args: &Vec<String>, config: Config) -> Result<(), Box<dyn Error>> {
+fn parse_arguments(args: &Vec<String>, config: Config) -> Result<()> {
     const TIME_ARGUMENT: &str = "-t";
     const DURATION: &str = "-d";
     const INDEFINITELY: &str = "-i";
@@ -98,6 +102,5 @@ fn display_usage() {
 }
 
 fn display_version() {
-    let version = env!("CARGO_PKG_VERSION");
-    println!("v: {}", version);
+    println!("v: {}", VERSION);
 }
