@@ -5,7 +5,7 @@ The purpose of the away utility to keep your computer from falling asleep while 
 It does this by repeatedly pressing the scroll-lock key for you.
 
 # How to install
-Download Windows away installer v0.1.7 from [here](https://s3.us-west-2.amazonaws.com/admincommand.com/files/away-0.1.7-setup.exe)
+[Download windows away installer v0.1.8](http://www.carmanbabin.com/away/away-0.1.8-setup.exe)
 
 # How to use examples
 Run till time:
@@ -23,7 +23,8 @@ Run indefinitely
 away -i
 ```
 
-Press "q" at any time to quit the program. The window does not need to be active.
+# Exiting
+Press "ctrl-q" at any time to quit the program. The window does not need to be active.
 
 ![](https://s3.us-west-2.amazonaws.com/blog.carmanbabin.net/tools/away.gif)
 
