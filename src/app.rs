@@ -173,11 +173,14 @@ impl App {
         thread::spawn(|| {
             loop {
                 let keys: Vec<Keycode> = DeviceState.get_keys();
-                for key in keys.iter() {
-                    if *key == Keycode::Q {
-                        process::exit(0);
-                    }
+
+                let ctrl_pressed = keys.contains(&Keycode::LControl) || keys.contains(&Keycode::RControl);
+                let q_pressed = keys.contains(&Keycode::Q);
+
+                if ctrl_pressed && q_pressed {
+                    process::exit(0);
                 }
+
                 thread::sleep(std::time::Duration::from_millis(100));
             }
         });
